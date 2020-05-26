@@ -6,7 +6,7 @@
 
   <groupId>com.twitter.teruteru128</groupId>
   <artifactId>bitmessage.keygen</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <name>bitmessage.keygen</name>
 
