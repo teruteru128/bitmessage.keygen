@@ -108,7 +108,37 @@ public class Producer implements Callable<Void> {
             // System.err.printf("piyo (%d) %s%n", request.getTaskID(), LocalDateTime.now());
             for (int i = 0; i < keyCacheSize; i++) {
                 System.arraycopy(publicKeys, i * PUBLIC_KEY_LENGTH, iPublicKey, 0, PUBLIC_KEY_LENGTH);
-                for (int j = 0; j <= i; j++) {
+                // 同じ鍵を使う場合は別に計算する
+                // ここから
+                // ripeを計算する
+                sha512.update(iPublicKey, 0, PUBLIC_KEY_LENGTH);
+                sha512.update(iPublicKey, 0, PUBLIC_KEY_LENGTH);
+                sha512.digest(cache64, 0, SHA512_DIGEST_LENGTH);
+                ripemd160.update(cache64, 0, SHA512_DIGEST_LENGTH);
+                ripemd160.digest(cache64, 0, RIPEMD160_DIGEST_LENGTH);
+                // number of leading zeroを計算する
+                for (nlz = 0; cache64[nlz] == 0 && nlz < RIPEMD160_DIGEST_LENGTH; nlz++) {
+                }
+                // 計算したnlz結果が要求値より良好なら
+                if (nlz >= requireNlz) {
+                    // responseインスタンスを生成してエンキュー
+                    byte[] signingPrivateKey = Arrays.copyOfRange(privateKeys, i * PRIVATE_KEY_LENGTH, (i + 1) * PRIVATE_KEY_LENGTH);
+                    KeyPair signingKeyPair = new KeyPair(signingPrivateKey, Arrays.copyOf(iPublicKey, PUBLIC_KEY_LENGTH));
+                    byte[] encryptionPrivateKey = Arrays.copyOfRange(privateKeys, i * PRIVATE_KEY_LENGTH, (i + 1) * PRIVATE_KEY_LENGTH);
+                    KeyPair encryptionKeyPair = new KeyPair(encryptionPrivateKey, Arrays.copyOf(iPublicKey, PUBLIC_KEY_LENGTH));
+                    var response = new Response(signingKeyPair, encryptionKeyPair, Arrays.copyOf(cache64, RIPEMD160_DIGEST_LENGTH));
+                    //System.err.printf("keypair found!(%d) %s%n", request.getTaskID(), LocalDateTime.now());
+                    try {
+                        Queues.getResponseQueue().put(response);
+                    } catch (InterruptedException e) {
+                        System.err.println("enqueue failed!");
+                        e.printStackTrace();
+                        // Save if failed
+                        enqueueTray.add(response);
+                    }
+                }
+                // ここまで
+                for (int j = 0; j < i; j++) {
                     System.arraycopy(publicKeys, j * PUBLIC_KEY_LENGTH, jPublicKey, 0, PUBLIC_KEY_LENGTH);
                     // XXX 変数生成処理をやらせないために1メソッドにベタ打ちしてるんだが、スタック領域に変数を生成/削除するのってそれなりに重い処理なのか？
                     // staticメソッドはメソッドをインライン展開してくれるらしい
