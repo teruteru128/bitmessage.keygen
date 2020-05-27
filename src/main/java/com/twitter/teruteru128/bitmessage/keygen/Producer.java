@@ -23,6 +23,7 @@ public class Producer implements Callable<Void> {
         this.request = request;
         string = "Task-" + request.getTaskID();
     }
+
     /* static const */
     private static final ECPoint G = CustomNamedCurves.getByName("secp256k1").getG();
     private static final int PRIVATE_KEY_LENGTH = 32;
@@ -31,6 +32,7 @@ public class Producer implements Callable<Void> {
     private static final int RIPEMD160_DIGEST_LENGTH = 20;
 
     /**
+     * TODO コマンドライン引数を実装
      * 
      * コマンド
      * generate
@@ -45,6 +47,7 @@ public class Producer implements Callable<Void> {
      *  出力先
      *   標準出力
      *   ファイル
+     * 
      * validate
      *  address
      *  signingPrivateKeyWIF
@@ -59,7 +62,6 @@ public class Producer implements Callable<Void> {
     public Void call() throws NoSuchAlgorithmException, DigestException {
         /* random source */
         final SecureRandom random = new SecureRandom();
-
 
         /* instance const */
         final int taskId = request.getTaskID();
